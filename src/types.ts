@@ -1,0 +1,9 @@
+export type Category = 'Metals' | 'Polymers' | 'Energy' | 'Other' | 'FX'
+export interface Series { id: string; name: string; category: Category; currency: string; unit: string; sourceColumn: string }
+export interface PriceRow { month: string; values: Record<string, number | null> }
+export interface Dataset { series: Series[]; rows: PriceRow[] }
+export interface ParsedWorkbook { dataset: Dataset; sheetName: string; warnings: string[] }
+export interface DatasetVersion {
+  id: string; filename: string; sheet_name: string; created_at: string;
+  created_by: string | null; row_count: number; series_count: number;
+}

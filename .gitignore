@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.vercel/
+*.tsbuildinfo
+playwright-report/
+test-results/
+.DS_Store
+*.xlsx
+*.xls
+*.csv
+local-data/
+output/
+supabase/.temp/
