@@ -2,11 +2,11 @@
 
 Project: [`yypmahjztkhpqgolsnio`](https://supabase.com/dashboard/project/yypmahjztkhpqgolsnio).
 
-All dashboard viewers and administrators sign in. Administrators can publish an Excel workbook as a complete replacement dataset and restore older versions. Previous snapshots remain available to administrators. A viewer can read only the current snapshot. Publishing and restoring update the active pointer atomically; another administrator's intervening change causes a conflict instead of silently replacing it.
+All dashboard viewers, administrators, and owners sign in. Administrators and owners can publish an Excel workbook as a complete replacement dataset and restore older versions. Owners inherit administrator permissions and can promote or remove administrators from the Members page. Previous snapshots remain available to administrators and owners. A viewer can read only the current snapshot. Publishing and restoring update the active pointer atomically; another administrator's intervening change causes a conflict instead of silently replacing it.
 
 ## 1. Apply the database migration
 
-Open the project's **SQL Editor**, paste the complete contents of [`migrations/202609180001_material_dashboard.sql`](migrations/202609180001_material_dashboard.sql), then [`migrations/202609220001_members_and_uploaders.sql`](migrations/202609220001_members_and_uploaders.sql), and [`migrations/202609220002_member_admin_emails.sql`](migrations/202609220002_member_admin_emails.sql), and run them in that order as the project owner. The member migrations add private profiles, signup-name capture, stored member/admin emails, the admin-only member directory RPC, and uploader names on dataset history. Re-running these migrations preserves existing snapshots and the active version.
+Open the project's **SQL Editor**, paste the complete contents of [`migrations/202609180001_material_dashboard.sql`](migrations/202609180001_material_dashboard.sql), then [`migrations/202609220001_members_and_uploaders.sql`](migrations/202609220001_members_and_uploaders.sql), [`migrations/202609220002_member_admin_emails.sql`](migrations/202609220002_member_admin_emails.sql), [`migrations/202609220003_owner_admin_management.sql`](migrations/202609220003_owner_admin_management.sql), and [`migrations/202609220004_require_confirmed_members.sql`](migrations/202609220004_require_confirmed_members.sql), and run them in that order as the project owner. The member migrations add private profiles, signup-name capture, stored member/admin emails, confirmed-email membership, an owner-only member directory and role-management RPC, and uploader names on dataset history. Re-running these migrations preserves existing snapshots and the active version.
 
 Alternatively, with the Supabase CLI installed and this directory as your project root:
 
@@ -25,9 +25,23 @@ In **Authentication → Providers**, enable email/password sign-in. Keep email c
 
 Under **Authentication → URL Configuration**, set the Site URL to the deployed Vercel domain and allow the app's exact callback URLs, including `http://localhost:5173` for local development. Add your chosen Vercel preview URLs if you intend to test email confirmation or recovery on previews. Configure a production email sender/SMTP provider before relying on production confirmation and recovery emails.
 
-Administrators use the same sign-in flow as viewers. Admin access comes exclusively from the database membership table, never from signup fields or browser state.
+Administrators and owners use the same sign-in flow as viewers. Admin and owner access comes exclusively from protected database membership tables, never from signup fields or browser state. A newly registered account is not added to the workspace member directory until `auth.users.email_confirmed_at` is set by the real confirmation link.
 
-## 3. Assign the first administrator
+## 3. Assign the first owner
+
+Create and confirm the intended owner's Auth account first, then run this as the project owner. Owners are not self-assignable from the browser:
+
+```sql
+insert into public.dashboard_owners (user_id, email)
+select id, email
+from auth.users
+where lower(email) = lower('owner@example.com')
+on conflict (user_id) do nothing;
+```
+
+An owner can now open **Members** and promote or remove administrator access for existing accounts. Owner rows cannot be removed or downgraded from the browser.
+
+## 4. Assign the first administrator
 
 Create the intended user's Auth account first, then confirm that email (or confirm it in the SQL below). Replace `your-login-email@example.com` with the **exact email you use to sign in** — not the placeholder. The previous `INTO STRICT` error (`P0002`) means no confirmed `auth.users` row matched that email.
 
@@ -79,9 +93,9 @@ where user_id = (
 );
 ```
 
-Do not add a client-side self-promotion flow or policies that let users write `dashboard_admins`.
+Do not add a client-side self-promotion flow or policies that let users write `dashboard_admins` or `dashboard_owners`. Owners should use the Members page to manage administrators.
 
-## 4. Configure the website
+## 5. Configure the website
 
 Set these environment variables locally and in your Vercel project's environment settings, then build/redeploy:
 
@@ -92,21 +106,27 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 
 Find the publishable key in the Supabase project's API settings. The publishable key is intended for browser use and relies on the migration's grants and row-level security. Never put a service-role key, secret API key, database password, or access token in any `VITE_` variable, frontend file, or GitHub commit.
 
-The workbook is parsed in the browser. Only the reviewed, normalized dataset is published to the database; the original Excel file is not stored in Supabase Storage. The initial database has no snapshot. Sign in as the administrator and import the workbook to publish the first live version.
+The workbook is parsed in the browser. Only the reviewed, normalized dataset is published to the database; the original Excel file is not stored in Supabase Storage. The initial database has no snapshot. Sign in as the administrator or owner and import the workbook to publish the first live version.
+
+Email confirmation and password recovery use Supabase Auth links. Keep **Confirm email** enabled under Authentication → Providers, and allow the exact deployed origin plus the local origin under Authentication → URL Configuration. The app uses the origin as both the confirmation callback and password-reset callback. After a user clicks the confirmation link, Supabase updates `email_confirmed_at`, the database trigger creates the member profile, and the account can sign in. Password reset links open the recovery state in the app and allow the user to set a new password.
 
 ## Client contract
 
 | Resource | Access and purpose |
 | --- | --- |
-| `dashboard_admins` | No browser table access. Membership is managed through the SQL Editor. |
+| `dashboard_admins` | No browser table access. The project owner seeds initial access; owners manage administrator membership through `set_member_admin`. |
+| `dashboard_owners` | No browser table access. Owners are assigned by the project owner; owners inherit administrator permissions. |
 | `dataset_versions` | Authenticated viewers read the active row; administrators read all versions. Clients cannot insert, update, or delete directly. |
 | `dashboard_state` | Authenticated users read the singleton `id = 1`. Its `active_version_id` may be null before the first import. |
 | `is_admin()` | Returns whether the authenticated caller is an administrator. |
+| `is_owner()` | Returns whether the authenticated caller is an owner. Owners also satisfy `is_admin()`. |
+| `is_confirmed_user()` | Returns whether the authenticated caller has confirmed their email. Dashboard RLS requires this. |
 | `publish_dataset(p_filename, p_sheet_name, p_payload, p_expected_version)` | Validates and inserts a new snapshot, then atomically activates it. Returns the new UUID. |
 | `restore_dataset(p_version_id, p_expected_version)` | Activates an existing immutable snapshot and returns its UUID. |
 | `list_members()` | Administrator-only member directory with names, email addresses, joined dates, and derived admin status. |
+| `set_member_admin(p_user_id, p_is_admin)` | Owner-only promotion or removal of administrator access for an existing member. |
 
-New signups send `first_name` and `last_name` in Supabase Auth metadata. A database trigger copies those values and the email into the protected `dashboard_members` table and keeps the stored email current. `dashboard_admins.email` is backfilled and automatically populated when an owner assigns an administrator. The browser cannot write member profiles or promote itself; admin status still comes only from `dashboard_admins`.
+New signups send `first_name` and `last_name` in Supabase Auth metadata. A database trigger copies those values and the email into the protected `dashboard_members` table and keeps the stored email current. `dashboard_admins.email` and `dashboard_owners.email` are backfilled and automatically populated when an owner is assigned or an administrator is added. The browser cannot write member profiles or promote itself; owner status still comes only from `dashboard_owners`.
 
 Pass the `active_version_id` that the administrator reviewed as `p_expected_version`, including `null` for a first import. Treat SQLSTATE `40001` as a publish/restore conflict: refetch the current state and require a fresh review. Do not silently retry against a new active version. `42501` means administrator access is required; `22023` means payload validation failed; `P0002` means the target snapshot or singleton state is missing.
 
@@ -139,12 +159,13 @@ Subscribe to `UPDATE` Postgres Changes on `public.dashboard_state`, with filter 
 
 Run these checks against a development or staging Supabase project with a viewer and administrator account:
 
-1. A signed-out client cannot read any of the three tables or execute the RPCs.
-2. A signed-in viewer reads the active snapshot, cannot read older snapshot payloads, and gets `42501` when calling either mutation RPC. Direct insert, update, and delete requests fail for both viewers and administrators.
+1. A signed-out client and an authenticated-but-unconfirmed account cannot read protected dashboard tables or execute the RPCs.
+2. A signed-in viewer reads the active snapshot, cannot read older snapshot payloads, and gets `42501` when calling publish, restore, or `set_member_admin`. Direct insert, update, and delete requests fail for viewers and administrators.
 3. An administrator publishes a valid workbook. The saved counts match the preview, the previous version remains in history, and a second signed-in browser updates without reloading.
-4. Missing fields, extra series keys, unknown categories, duplicate months/IDs, impossible months, text prices, oversized values, and all-null datasets cause `22023` without changing the active pointer or inserting a snapshot.
-5. Two administrator windows start from the same active version. After one publishes, the second must receive `40001` and preserve the first result. Repeat for restore and for two initial uploads when the expected UUID is null.
-6. Restoring an earlier version changes the viewer's dataset while retaining both snapshots. Refreshing and reconnecting still load the current version.
+4. An owner sees Members, can promote a user to administrator, can remove administrator access, and cannot change owner access. A viewer and administrator cannot perform those actions.
+5. Missing fields, extra series keys, unknown categories, duplicate months/IDs, impossible months, text prices, oversized values, and all-null datasets cause `22023` without changing the active pointer or inserting a snapshot.
+6. Two administrator windows start from the same active version. After one publishes, the second must receive `40001` and preserve the first result. Repeat for restore and for two initial uploads when the expected UUID is null.
+7. Restoring an earlier version changes the viewer's dataset while retaining both snapshots. Refreshing and reconnecting still load the current version.
 
 Useful read-only SQL checks in the SQL Editor:
 
@@ -157,7 +178,7 @@ from public.dataset_versions order by created_at desc;
 select tablename, policyname, roles, cmd
 from pg_policies
 where schemaname = 'public'
-  and tablename in ('dashboard_admins', 'dataset_versions', 'dashboard_state');
+  and tablename in ('dashboard_admins', 'dashboard_members', 'dashboard_owners', 'dataset_versions', 'dashboard_state');
 
 select schemaname, tablename
 from pg_publication_tables

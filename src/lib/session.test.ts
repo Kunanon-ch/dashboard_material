@@ -213,7 +213,7 @@ describe('authentication permissions', () => {
     expect(hook.current.isAdmin).toBe(true)
     const beforeRefresh = hook.renders.length
     await emitAuth('TOKEN_REFRESHED', session('account-a', 'new-token'))
-    expect(mock.rpc).toHaveBeenCalledTimes(1)
+    expect(mock.rpc).toHaveBeenCalledTimes(2)
     expect(hook.renders.slice(beforeRefresh).every(value => value.isAdmin && !value.roleLoading)).toBe(true)
   })
 

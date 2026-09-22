@@ -39,6 +39,8 @@ small, .small { font-size: 12px; }
 .button-primary:hover:not(:disabled) { background: var(--blue-deep); border-color: var(--blue-deep); box-shadow: 0 5px 12px rgb(40 100 236 / 20%); }
 .button-secondary { background: #fff; border-color: #dce5f0; color: #405575; }
 .button-secondary:hover:not(:disabled) { background: #f4f7fd; border-color: #becfeb; }
+.button-danger { background: #fff4f6; border-color: #f2d6dc; color: #b55265; }
+.button-danger:hover:not(:disabled) { background: #ffebef; border-color: #e9b9c3; }
 .button-small { min-height: 32px; padding: 6px 11px; font-size: 11px; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
 .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0; border: 0; background: transparent; color: var(--blue); cursor: pointer; font-size: 12px; font-weight: 620; text-decoration: none; }
@@ -398,6 +400,7 @@ tbody tr:hover { background: #fbfcff; }
 .member-role { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; font-size: 10px; font-weight: 650; }
 .member-role-admin { background: #edf3ff; color: #3f6cc0; }
 .member-role-user { background: #f1f5f9; color: #6b7e97; }
+.member-role-owner { background: #fff5e7; color: #a46d2d; }
 .members-empty { display: grid; justify-items: center; gap: 8px; min-height: 240px; place-content: center; border: 1px dashed #e1e9f6; border-radius: 10px; background: #fcfdff; color: #8294ad; text-align: center; }
 .members-empty svg { color: #82a1d8; }
 .members-empty strong { color: #657e9f; font-size: 12px; }
@@ -560,7 +563,7 @@ tbody tr:hover { background: #fbfcff; }
   .history-uploader small { font-size: 8px; }
   .members-panel { padding: 19px 16px; }
   .members-toolbar { align-items: stretch; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-  .role-tabs { justify-content: stretch; }
+  .role-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; }
   .role-tabs button { flex: 1; justify-content: center; padding-inline: 7px; font-size: 10px; }
   .member-search { width: 100%; min-height: 38px; }
   .member-search input { font-size: 12px; }
@@ -576,6 +579,8 @@ tbody tr:hover { background: #fbfcff; }
   .member-identity > span:last-child { min-width: 0; }
   .member-identity small { overflow-wrap: anywhere; }
   .members-table td:last-child { text-align: right; }
+  .members-table .members-action:empty { display: none; }
+  .members-table .members-action:empty::before { display: none; }
   .name-fields { grid-template-columns: 1fr; gap: 20px; }
   .notice { gap: 8px; padding: 12px; font-size: 11px; }
   .notice > .button { align-self: flex-start; }

@@ -61,7 +61,7 @@ function App() {
       <Route
         path="/chart"
         element={signedIn ? (
-          <Shell canImport={showImportNav} isAdmin={auth.isAdmin} email={auth.session?.user.email} signingOut={signingOut} onSignOut={() => void signOut()}>
+          <Shell canImport={showImportNav} isAdmin={auth.isAdmin} isOwner={auth.isOwner} email={auth.session?.user.email} signingOut={signingOut} onSignOut={() => void signOut()}>
             {signOutError && <div className="notice notice-error" role="alert">{signOutError}</div>}
             <Dashboard
               dataset={dataset}
@@ -81,7 +81,7 @@ function App() {
       <Route
         path="/import"
         element={signedIn && auth.roleLoading ? <p className="app-status">Checking workspace permissions…</p> : signedIn && canImport ? (
-          <Shell canImport={showImportNav} isAdmin={auth.isAdmin} email={auth.session?.user.email} signingOut={signingOut} onSignOut={() => void signOut()}>
+          <Shell canImport={showImportNav} isAdmin={auth.isAdmin} isOwner={auth.isOwner} email={auth.session?.user.email} signingOut={signingOut} onSignOut={() => void signOut()}>
             {signOutError && <div className="notice notice-error" role="alert">{signOutError}</div>}
             {loading ? <p className="app-status">Loading your dataset…</p> : error && !version ? (
               <div className="notice notice-error" role="alert">
@@ -101,9 +101,9 @@ function App() {
       <Route
         path="/members"
         element={signedIn && auth.roleLoading ? <p className="app-status">Checking workspace permissions…</p> : signedIn && canImport ? (
-          <Shell canImport={showImportNav} isAdmin={auth.isAdmin} email={auth.session?.user.email} signingOut={signingOut} onSignOut={() => void signOut()}>
+          <Shell canImport={showImportNav} isAdmin={auth.isAdmin} isOwner={auth.isOwner} email={auth.session?.user.email} signingOut={signingOut} onSignOut={() => void signOut()}>
             {signOutError && <div className="notice notice-error" role="alert">{signOutError}</div>}
-            <MembersManager />
+            <MembersManager isOwner={auth.isOwner} />
           </Shell>
         ) : <Navigate to={signedIn ? '/chart' : '/login'} replace />}
       />
@@ -114,10 +114,11 @@ function App() {
 
 
 function Shell({
-  canImport, isAdmin, email, signingOut, onSignOut, children,
+  canImport, isAdmin, isOwner, email, signingOut, onSignOut, children,
 }: {
   canImport: boolean
   isAdmin: boolean
+  isOwner: boolean
   email?: string
   signingOut: boolean
   onSignOut: () => void
@@ -146,7 +147,7 @@ function Shell({
         <header className="app-topbar">
           <Link to="/chart" className="brand-link mobile-brand" aria-label="Forma home"><Brand compact /></Link>
           <div className="breadcrumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{viewingMembers ? 'Members' : importing ? 'Import data' : 'Overview'}</strong></div>
-          <div className="account-menu"><span className="account-role"><ShieldCheck size={14} />{isAdmin ? 'Administrator' : 'Viewer'}</span><span className="account-avatar" title={email ?? 'Your account'} aria-label={email ?? 'Your account'}>{email?.charAt(0).toUpperCase() || 'F'}</span><button type="button" className="signout-button" aria-label="Sign out" disabled={signingOut} onClick={onSignOut}><LogOut size={18} /><span>{signingOut ? 'Signing out…' : 'Sign out'}</span></button></div>
+          <div className="account-menu"><span className="account-role"><ShieldCheck size={14} />{isOwner ? 'Owner' : isAdmin ? 'Administrator' : 'Viewer'}</span><span className="account-avatar" title={email ?? 'Your account'} aria-label={email ?? 'Your account'}>{email?.charAt(0).toUpperCase() || 'F'}</span><button type="button" className="signout-button" aria-label="Sign out" disabled={signingOut} onClick={onSignOut}><LogOut size={18} /><span>{signingOut ? 'Signing out…' : 'Sign out'}</span></button></div>
         </header>
         <main className="app-main" id="workspace-content">{children}<footer className="workspace-footer"><span>Forma · Material intelligence</span><span>Clarity for your next decision.</span></footer></main>
       </div>

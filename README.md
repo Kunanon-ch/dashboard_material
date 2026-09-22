@@ -1,6 +1,6 @@
 # Forma material dashboard
 
-A React dashboard for monthly material prices, with Excel import, indexed comparisons, CSV export, Supabase authentication, version history, and an administrator-only member directory.
+A React dashboard for monthly material prices, with Excel import, indexed comparisons, CSV export, Supabase authentication, version history, and an owner/admin member directory.
 
 ## Run locally
 
@@ -31,7 +31,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 
 Restart the dev server after changing environment variables. The production build requires this configuration and sign-in; the local preview entry is only available in development.
 
-Administrators publish complete dataset snapshots and can restore an earlier version. Other signed-in users see the active snapshot. An intervening publication requires the administrator to review the workbook again. Admins can also view members split by User/Admin role, and upload history records the administrator who published each snapshot.
+Administrators and owners publish complete dataset snapshots and can restore an earlier version. Other signed-in users see the active snapshot. An intervening publication requires the administrator to review the workbook again. Admins can view members split by User/Admin/Owner role; owners can promote or remove administrators, and upload history records who published each snapshot.
 
 ## Verify and build
 

@@ -5,7 +5,7 @@ import { supabase } from './supabase'
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(Boolean(supabase))
-  const [role, setRole] = useState<{ userId: string | null; isAdmin: boolean; loading: boolean; error: string | null }>({ userId: null, isAdmin: false, loading: false, error: null })
+  const [role, setRole] = useState<{ userId: string | null; isAdmin: boolean; isOwner: boolean; loading: boolean; error: string | null }>({ userId: null, isAdmin: false, isOwner: false, loading: false, error: null })
   const [authError, setAuthError] = useState<string | null>(null)
   const [recovery, setRecovery] = useState(false)
   const userId = session?.user.id ?? null
@@ -35,18 +35,32 @@ export function useAuth() {
   useEffect(() => {
     const client = supabase
     if (!userId || !client) {
-      setRole({ userId: null, isAdmin: false, loading: false, error: null })
+      setRole({ userId: null, isAdmin: false, isOwner: false, loading: false, error: null })
       return
     }
     let alive = true
-    setRole({ userId, isAdmin: false, loading: true, error: null })
+    setRole({ userId, isAdmin: false, isOwner: false, loading: true, error: null })
     void (async () => {
       try {
         const { data, error: roleError } = await client.rpc('is_admin')
         if (!alive) return
-        setRole({ userId, isAdmin: !roleError && data === true, loading: false, error: roleError ? 'Could not load workspace permissions. Check the database setup.' : null })
+        if (roleError) {
+          setRole({ userId, isAdmin: false, isOwner: false, loading: false, error: 'Could not load workspace permissions. Check the database setup.' })
+          return
+        }
+        let isOwner = false
+        if (data === true) {
+          const ownerResult = await client.rpc('is_owner')
+          if (!alive) return
+          if (ownerResult.error) {
+            setRole({ userId, isAdmin: true, isOwner: false, loading: false, error: 'Could not load owner permissions. Check the database setup.' })
+            return
+          }
+          isOwner = ownerResult.data === true
+        }
+        setRole({ userId, isAdmin: data === true, isOwner, loading: false, error: null })
       } catch {
-        if (alive) setRole({ userId, isAdmin: false, loading: false, error: 'Could not load workspace permissions. Check your connection and reload.' })
+        if (alive) setRole({ userId, isAdmin: false, isOwner: false, loading: false, error: 'Could not load workspace permissions. Check your connection and reload.' })
       }
     })()
     return () => { alive = false }
@@ -54,7 +68,8 @@ export function useAuth() {
 
   const roleLoading = Boolean(userId && supabase && (role.userId !== userId || role.loading))
   const isAdmin = Boolean(userId && role.userId === userId && !roleLoading && role.isAdmin)
+  const isOwner = Boolean(userId && role.userId === userId && !roleLoading && role.isOwner)
   const error = authError ?? (role.userId === userId ? role.error : null)
 
-  return { session, loading, isAdmin, roleLoading, error, recovery, finishRecovery: () => setRecovery(false) }
+  return { session, loading, isAdmin, isOwner, roleLoading, error, recovery, finishRecovery: () => setRecovery(false) }
 }

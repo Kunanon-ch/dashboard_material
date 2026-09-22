@@ -16,4 +16,5 @@ export interface Member {
   last_name: string;
   created_at: string;
   is_admin: boolean;
+  is_owner: boolean;
 }
