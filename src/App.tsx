@@ -1,8 +1,9 @@
 import { lazy, Suspense, useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { Activity, ArrowDownRight, ArrowUpRight, CalendarDays, ChartNoAxesCombined, ChevronRight, Download, FileSpreadsheet, Layers3, LogOut, Search, ShieldCheck, TrendingDown, TrendingUp } from 'lucide-react'
+import { Activity, ArrowDownRight, ArrowUpRight, CalendarDays, ChartNoAxesCombined, ChevronRight, Download, FileSpreadsheet, Layers3, LogOut, Search, ShieldCheck, TrendingDown, TrendingUp, UsersRound } from 'lucide-react'
 import AuthScreen from './components/AuthScreen'
 import ImportManager from './components/ImportManager'
+import MembersManager from './components/MembersManager'
 import type { ChartOption } from './components/Chart'
 import Brand from './components/Brand'
 import type { Dataset, DatasetVersion } from './types'
@@ -97,6 +98,15 @@ function App() {
           </Shell>
         ) : <Navigate to={signedIn ? '/chart' : '/login'} replace />}
       />
+      <Route
+        path="/members"
+        element={signedIn && auth.roleLoading ? <p className="app-status">Checking workspace permissions…</p> : signedIn && canImport ? (
+          <Shell canImport={showImportNav} isAdmin={auth.isAdmin} email={auth.session?.user.email} signingOut={signingOut} onSignOut={() => void signOut()}>
+            {signOutError && <div className="notice notice-error" role="alert">{signOutError}</div>}
+            <MembersManager />
+          </Shell>
+        ) : <Navigate to={signedIn ? '/chart' : '/login'} replace />}
+      />
       <Route path="*" element={<Navigate to={signedIn ? '/chart' : '/login'} replace />} />
     </Routes>
   )
@@ -115,6 +125,7 @@ function Shell({
 }) {
   const location = useLocation()
   const importing = location.pathname === '/import'
+  const viewingMembers = location.pathname === '/members'
   return (
     <div className="app-shell">
       <a className="skip-link" href="#workspace-content">Skip to content</a>
@@ -124,6 +135,7 @@ function Shell({
         <nav aria-label="Main navigation" className="workspace-nav">
           <NavLink to="/chart"><ChartNoAxesCombined size={20} /><span>Overview</span><ChevronRight size={15} className="nav-chevron" /></NavLink>
           {canImport && <NavLink to="/import"><FileSpreadsheet size={20} /><span>Import data</span><ChevronRight size={15} className="nav-chevron" /></NavLink>}
+          {canImport && <NavLink to="/members"><UsersRound size={20} /><span>Members</span><ChevronRight size={15} className="nav-chevron" /></NavLink>}
         </nav>
         <div className="sidebar-bottom">
           <div className="workspace-note"><span className="workspace-note-icon"><Layers3 size={23} /></span><strong>A clearer view,<br />month by month.</strong><p>One place for your team’s material intelligence.</p><span className="workspace-note-rule" /></div>
@@ -133,7 +145,7 @@ function Shell({
       <div className="workspace-body">
         <header className="app-topbar">
           <Link to="/chart" className="brand-link mobile-brand" aria-label="Forma home"><Brand compact /></Link>
-          <div className="breadcrumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{importing ? 'Import data' : 'Overview'}</strong></div>
+          <div className="breadcrumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{viewingMembers ? 'Members' : importing ? 'Import data' : 'Overview'}</strong></div>
           <div className="account-menu"><span className="account-role"><ShieldCheck size={14} />{isAdmin ? 'Administrator' : 'Viewer'}</span><span className="account-avatar" title={email ?? 'Your account'} aria-label={email ?? 'Your account'}>{email?.charAt(0).toUpperCase() || 'F'}</span><button type="button" className="signout-button" aria-label="Sign out" disabled={signingOut} onClick={onSignOut}><LogOut size={18} /><span>{signingOut ? 'Signing out…' : 'Sign out'}</span></button></div>
         </header>
         <main className="app-main" id="workspace-content">{children}<footer className="workspace-footer"><span>Forma · Material intelligence</span><span>Clarity for your next decision.</span></footer></main>
@@ -320,7 +332,7 @@ function Dashboard({
       </div>
 
       <div className="stat-grid">
-        <article className="stat-card stat-card-featured"><span className="stat-icon"><CalendarDays size={19} /></span><div><span className="stat-label">Reporting month</span><strong>{monthLabel(latestMonth)}</strong><small>{version ? `Updated ${new Date(version.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Latest published data'}</small></div></article>
+        <article className="stat-card stat-card-featured"><span className="stat-icon"><CalendarDays size={19} /></span><div><span className="stat-label">Reporting month</span><strong>{monthLabel(latestMonth)}</strong><small>{version ? <>Updated {new Date(version.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}{version.created_by_name ? ` · by ${version.created_by_name}` : ''}</> : 'Latest published data'}</small></div></article>
         <article className="stat-card"><span className="stat-icon"><Layers3 size={18} /></span><div><span className="stat-label">Tracked series</span><strong>{dataset.series.length}</strong><small>{dataset.series.filter((series) => series.category !== 'FX').length} material quotes · {dataset.series.filter((series) => series.category === 'FX').length} FX</small></div></article>
         <article className="stat-card"><span className="stat-icon"><Activity size={18} /></span><div><span className="stat-label">Data coverage</span><strong>{rows.length} months</strong><small>{monthLabel(rows[0].month, true)} – {monthLabel(latestMonth, true)}</small></div></article>
         <article className="stat-card"><span className={`stat-icon ${biggestMover?.change && biggestMover.change < 0 ? 'tone-negative' : 'tone-positive'}`}>{biggestMover?.change && biggestMover.change < 0 ? <TrendingDown size={18} /> : <TrendingUp size={18} />}</span><div><span className="stat-label">Largest monthly move</span><strong>{biggestMover ? formatChange(biggestMover.change) : '—'}</strong><small>{biggestMover ? biggestMover.series.name : 'No comparable THB quote'}</small></div></article>

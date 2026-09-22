@@ -23,7 +23,7 @@ const parsed: ParsedWorkbook = {
 }
 const olderVersion: DatasetVersion = {
   id: 'older-version', filename: 'older.xlsx', sheet_name: 'all',
-  created_at: '2026-01-01T00:00:00Z', created_by: 'admin', row_count: 1, series_count: 1,
+  created_at: '2026-01-01T00:00:00Z', created_by: 'admin', created_by_name: 'Admin User', row_count: 1, series_count: 1,
 }
 const newerVersion: DatasetVersion = { ...olderVersion, id: 'newer-version', filename: 'newer.xlsx' }
 

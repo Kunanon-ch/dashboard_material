@@ -6,7 +6,7 @@ All dashboard viewers and administrators sign in. Administrators can publish an 
 
 ## 1. Apply the database migration
 
-Open the project's **SQL Editor**, paste the complete contents of [`migrations/202609180001_material_dashboard.sql`](migrations/202609180001_material_dashboard.sql), and run it as the project owner. It creates the protected tables, RPC functions, and Realtime publication entry. Re-running this migration preserves existing snapshots and the active version.
+Open the project's **SQL Editor**, paste the complete contents of [`migrations/202609180001_material_dashboard.sql`](migrations/202609180001_material_dashboard.sql), then [`migrations/202609220001_members_and_uploaders.sql`](migrations/202609220001_members_and_uploaders.sql), and [`migrations/202609220002_member_admin_emails.sql`](migrations/202609220002_member_admin_emails.sql), and run them in that order as the project owner. The member migrations add private profiles, signup-name capture, stored member/admin emails, the admin-only member directory RPC, and uploader names on dataset history. Re-running these migrations preserves existing snapshots and the active version.
 
 Alternatively, with the Supabase CLI installed and this directory as your project root:
 
@@ -104,6 +104,9 @@ The workbook is parsed in the browser. Only the reviewed, normalized dataset is 
 | `is_admin()` | Returns whether the authenticated caller is an administrator. |
 | `publish_dataset(p_filename, p_sheet_name, p_payload, p_expected_version)` | Validates and inserts a new snapshot, then atomically activates it. Returns the new UUID. |
 | `restore_dataset(p_version_id, p_expected_version)` | Activates an existing immutable snapshot and returns its UUID. |
+| `list_members()` | Administrator-only member directory with names, email addresses, joined dates, and derived admin status. |
+
+New signups send `first_name` and `last_name` in Supabase Auth metadata. A database trigger copies those values and the email into the protected `dashboard_members` table and keeps the stored email current. `dashboard_admins.email` is backfilled and automatically populated when an owner assigns an administrator. The browser cannot write member profiles or promote itself; admin status still comes only from `dashboard_admins`.
 
 Pass the `active_version_id` that the administrator reviewed as `p_expected_version`, including `null` for a first import. Treat SQLSTATE `40001` as a publish/restore conflict: refetch the current state and require a fresh review. Do not silently retry against a new active version. `42501` means administrator access is required; `22023` means payload validation failed; `P0002` means the target snapshot or singleton state is missing.
 

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight, ChartNoAxesCombined, Check, ChevronLeft, Eye, EyeOff, Layers3, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ChartNoAxesCombined, Check, ChevronLeft, Eye, EyeOff, Layers3, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import Brand from './Brand'
 import { configurationError, supabase } from '../lib/supabase'
 
@@ -8,6 +8,8 @@ interface Props { recovery?: boolean; onRecovered?: () => void }
 export default function AuthScreen({ recovery, onRecovered }: Props) {
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login')
   const [email, setEmail] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [password, setPassword] = useState('')
   const [visible, setVisible] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -27,7 +29,14 @@ export default function AuthScreen({ recovery, onRecovered }: Props) {
         const result = await supabase.auth.signInWithPassword({ email, password })
         if (result.error) throw result.error
       } else if (mode === 'signup') {
-        const result = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } })
+        const result = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { first_name: firstName.trim(), last_name: lastName.trim() },
+          },
+        })
         if (result.error) throw result.error
         setNotice('Check your email to confirm your account, then sign in. If you already have an account, use Sign in or reset your password.')
       } else {
@@ -74,6 +83,10 @@ export default function AuthScreen({ recovery, onRecovered }: Props) {
         <p className="muted">{configurationError ? 'Your team’s material intelligence is almost ready.' : recovery ? 'Choose a new password to secure your account.' : mode === 'signup' ? 'One account. A shared view of your material prices.' : mode === 'reset' ? 'Enter your email and we’ll send you a reset link.' : 'Sign in to stay one step ahead of your material prices.'}</p>
 
         {configurationError ? <div className="setup-card"><ShieldCheck size={24} /><h3>Workspace setup in progress</h3><p>Contact your workspace administrator to finish connecting your account.</p></div> : <form onSubmit={submit} className="auth-form">
+          {mode === 'signup' && <div className="name-fields">
+            <label htmlFor="auth-first-name">First name<div className="input-with-icon"><UserRound size={18} /><input id="auth-first-name" type="text" autoComplete="given-name" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" maxLength={100} disabled={busy} required /></div></label>
+            <label htmlFor="auth-last-name">Last name<div className="input-with-icon"><UserRound size={18} /><input id="auth-last-name" type="text" autoComplete="family-name" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" maxLength={100} disabled={busy} required /></div></label>
+          </div>}
           {!recovery && <label htmlFor="auth-email">Email address<div className="input-with-icon"><Mail size={18} /><input id="auth-email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" disabled={busy} required /></div></label>}
           {(mode !== 'reset' || recovery) && <div className="password-field"><div className="password-label"><label htmlFor="auth-password">Password</label>{mode === 'login' && !recovery && <button type="button" className="text-button" disabled={busy} onClick={() => changeMode('reset')}>Forgot password?</button>}</div><div className="input-with-icon"><LockKeyhole size={18} /><input id="auth-password" type={visible ? 'text' : 'password'} autoComplete={mode === 'signup' || recovery ? 'new-password' : 'current-password'} minLength={mode === 'signup' || recovery ? 8 : 1} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" disabled={busy} required /><button type="button" className="icon-button" aria-label={visible ? 'Hide password' : 'Show password'} onClick={() => setVisible(!visible)}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></div>}
           {(mode === 'signup' || recovery) && <small className="password-hint">Use at least 8 characters.</small>}

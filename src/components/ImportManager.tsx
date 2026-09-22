@@ -34,7 +34,7 @@ export default function ImportManager({ version, onPublished, preview = false, o
   useEffect(() => {
     if (preview || !supabase) return
     let active = true
-    void supabase.from('dataset_versions').select('id,filename,sheet_name,created_at,created_by,row_count,series_count')
+    void supabase.from('dataset_versions').select('id,filename,sheet_name,created_at,created_by,created_by_name,row_count,series_count')
       .order('created_at', { ascending: false }).range(historyPage * 10, historyPage * 10 + 10)
       .then(({ data, error: loadError }) => {
         if (!active) return
@@ -141,8 +141,9 @@ export default function ImportManager({ version, onPublished, preview = false, o
       <div className="section-heading"><div className="section-heading-with-icon"><span className="section-icon"><History size={20} /></span><div><h2>Upload history</h2><p className="muted small">Every update, in one place.</p></div></div><span className="pill">Version history</span></div>
       {historyError && <p className="notice notice-error" role="alert">{historyError}</p>}
       {history.length === 0 ? <div className="history-empty"><History size={26} /><strong>Your updates will live here</strong><p>Publish your first workbook to start building your version history.</p></div> : <>
-        <div className="history-table-wrap"><table className="history-table" role="table"><thead><tr><th scope="col">Workbook</th><th scope="col">Published</th><th scope="col">Coverage</th><th scope="col">Status</th><th scope="col"><span className="visually-hidden">Actions</span></th></tr></thead><tbody role="rowgroup">{history.map(item => <tr key={item.id} role="row">
+        <div className="history-table-wrap"><table className="history-table" role="table"><thead><tr><th scope="col">Workbook</th><th scope="col">Uploaded by</th><th scope="col">Published</th><th scope="col">Coverage</th><th scope="col">Status</th><th scope="col"><span className="visually-hidden">Actions</span></th></tr></thead><tbody role="rowgroup">{history.map(item => <tr key={item.id} role="row">
           <td role="cell" className="history-filename" data-label="Workbook"><FileSpreadsheet size={18} /><span title={item.filename}>{item.filename}</span></td>
+          <td role="cell" data-label="Uploaded by"><span className="history-uploader">{item.created_by_name ?? 'Name not recorded'}<small>{item.created_by ? `Admin · ${item.created_by.slice(0, 8)}` : 'Administrator'}</small></span></td>
           <td role="cell" data-label="Published">{new Date(item.created_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</td>
           <td role="cell" data-label="Coverage">{item.row_count} months · {item.series_count} series</td>
           <td role="cell" data-label="Status"><span className={`pill ${item.id === version?.id ? 'pill-green' : ''}`}>{item.id === version?.id && <span className="status-dot" />}{item.id === version?.id ? 'Active' : 'Archived'}</span></td>
