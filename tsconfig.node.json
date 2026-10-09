@@ -1,1 +1,1 @@
-{"compilerOptions":{"target":"ES2022","lib":["ES2023"],"module":"ESNext","moduleResolution":"Bundler","strict":true,"skipLibCheck":true,"noEmit":true,"allowImportingTsExtensions":true,"types":["node"]},"include":["vite.config.ts","playwright.config.ts"]}
+{"compilerOptions":{"target":"ES2022","lib":["ES2023"],"module":"ESNext","moduleResolution":"Bundler","strict":true,"skipLibCheck":true,"noEmit":true,"allowImportingTsExtensions":true,"types":["node"]},"include":["vite.config.ts","playwright.config.ts","api/**/*.ts"]}

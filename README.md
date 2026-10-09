@@ -33,6 +33,18 @@ Restart the dev server after changing environment variables. The production buil
 
 Administrators and owners publish complete dataset snapshots and can restore an earlier version. Other signed-in users see the active snapshot. An intervening publication requires the administrator to review the workbook again. Admins can view members split by User/Admin/Owner role; owners can promote or remove administrators, and upload history records who published each snapshot.
 
+## Daily Supabase database activity
+
+The production deployment runs `/api/supabase-keepalive` once a day using Vercel Cron. The schedule `0 1 * * *` is 01:00 UTC / 08:00 in Thailand; Vercel Hobby can invoke it anytime between 08:00 and 08:59. No browser or local computer needs to stay open.
+
+Apply [`202610090001_dashboard_keepalive.sql`](supabase/migrations/202610090001_dashboard_keepalive.sql) in the Supabase SQL Editor. It adds a read-only RPC that checks the existing `dashboard_state` singleton and returns only a boolean. Existing dashboard table permissions remain intact, and the RPC exposes no prices, snapshots, or member information.
+
+Set `CRON_SECRET` as a server-only **Production Secret** in the existing Vercel `datadashboard` project before deploying. Use a randomly generated value of at least 32 characters. The function uses the project's existing `VITE_SUPABASE_URL` and public `VITE_SUPABASE_PUBLISHABLE_KEY`; it does not need a service-role key or a user password. Vercel sends the cron secret in the Authorization header automatically.
+
+Each invocation makes three uncached, read-only database requests. Failed database checks return HTTP 502 and are recorded in Vercel runtime logs. View the schedule and run it manually under **Project Settings → Cron Jobs**, then check for `Supabase keepalive completed` in **Logs**. Unauthenticated requests return HTTP 401.
+
+Daily database requests reduce the risk of Free-plan inactivity pausing, but do not guarantee availability. See [Supabase's pausing policy](https://supabase.com/docs/guides/platform/free-project-pausing) and [Vercel Cron management](https://vercel.com/docs/cron-jobs/manage-cron-jobs). To stop the schedule, remove the `crons` entry from `vercel.json` and redeploy, or disable it in Vercel's Cron Jobs settings.
+
 ## Verify and build
 
 ```sh

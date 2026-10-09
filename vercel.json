@@ -4,7 +4,9 @@
   "alias": ["datadashboard.vercel.app"],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }],
+  "functions": { "api/supabase-keepalive.ts": { "maxDuration": 30 } },
+  "crons": [{ "path": "/api/supabase-keepalive", "schedule": "0 1 * * *" }],
+  "rewrites": [{ "source": "/((?!assets/|api(?:/|$)).*)", "destination": "/index.html" }],
   "headers": [{ "source": "/(.*)", "headers": [
     { "key": "X-Content-Type-Options", "value": "nosniff" },
     { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
